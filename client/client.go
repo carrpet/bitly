@@ -11,6 +11,12 @@ type BitlyObject interface {
 	Deserialize(res []byte)
 }
 
+type BitlyClient interface {
+	// SendRequest sends the request to the server and
+	// reads the full response into a byte array
+	SendRequest() ([]byte, error)
+}
+
 type BitlyClientRequest struct {
 	req *http.Request
 }
@@ -24,6 +30,16 @@ func newBitlyClientRequest(path, verb, token string) (*BitlyClientRequest, error
 	bearer := "Bearer " + token
 	req.Header.Add("Authorization", bearer)
 	return &BitlyClientRequest{req: req}, nil
+}
+
+func (c *BitlyClientRequest) SendRequest() ([]byte, error) {
+	client := &http.Client{}
+	resp, err := client.Do(c.req)
+	if err != nil {
+		log.Println("Error on response.\n[ERRO] -", err)
+	}
+
+	return ioutil.ReadAll(resp.Body)
 }
 
 type BitlyUserInfo struct {
@@ -45,13 +61,10 @@ func GetUserInfo(token string) (*BitlyUserInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{}
-	resp, err := client.Do(req.req)
+	body, err := req.SendRequest()
 	if err != nil {
-		log.Println("Error on response.\n[ERRO] -", err)
+		return nil, err
 	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
 	userInfo := &BitlyUserInfo{}
 	err = userInfo.Deserialize(body)
 	if err != nil {

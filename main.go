@@ -29,6 +29,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("UserInfo has name: %s and GroupGuid: %s:", userInfo.Name, userInfo.GroupGuid)
+	fmt.Printf("UserInfo has name: %s and GroupGuid: %s", userInfo.Name, userInfo.GroupGuid)
 
 }
