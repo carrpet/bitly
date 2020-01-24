@@ -25,7 +25,9 @@ return map(divideclicksby30,ctcht)
 */
 func main() {
 	token := "5ad8274a49bcd964f23d4b685c272c37de718711"
-	userInfo, err := client.GetUserInfo(token)
+	bc := client.BitlyClientInfo{Token: token}
+
+	userInfo, err := client.GetUserInfo(bc)
 	if err != nil {
 		panic(err)
 	}
