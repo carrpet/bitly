@@ -33,4 +33,11 @@ func main() {
 	}
 	fmt.Printf("UserInfo has name: %s and GroupGuid: %s", userInfo.Name, userInfo.GroupGuid)
 
+	// retrieve all the links and stick into a hashtable
+	groupslinks, err := client.GetBitlinksForGroup(bc, userInfo.GroupGuid)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("GroupsBitlink has link: %s and id: %s", groupslinks.Links[0].Link, groupslinks.Links[0].ID)
+
 }

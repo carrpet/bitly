@@ -48,7 +48,24 @@ type bitlyUserInfo struct {
 	Name      string `json:"name"`
 }
 
+type bitlyGroupsBitLinks struct {
+	//Pagination string   `json:"pagination"`
+	Links []bitlyBitlinks `json:"links"`
+}
+type bitlyBitlinks struct {
+	Link string `json:"link"`
+	ID   string `json:"id"`
+}
+
 func (o *bitlyUserInfo) deserialize(res []byte) error {
+
+	if err := json.Unmarshal(res, &o); err != nil {
+		return err
+	}
+	return nil
+
+}
+func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
 
 	if err := json.Unmarshal(res, &o); err != nil {
 		return err
@@ -72,5 +89,24 @@ func GetUserInfo(client bitlyClient) (*bitlyUserInfo, error) {
 		return nil, err
 	}
 	return userInfo, nil
+
+}
+
+func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitLinks, error) {
+	path := "groups/" + groupGUID + "/bitlinks"
+	req, err := client.createRequest(path, "GET", "")
+	if err != nil {
+		return nil, err
+	}
+	body, err := client.sendRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	bitlinks := &bitlyGroupsBitLinks{}
+	err = bitlinks.deserialize(body)
+	if err != nil {
+		return nil, err
+	}
+	return bitlinks, nil
 
 }
