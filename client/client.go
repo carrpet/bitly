@@ -10,6 +10,15 @@ import (
 
 const bitlyAPI = "https://api-ssl.bitly.com/v4/"
 
+type BitlyClientInfo struct {
+	Token string
+}
+
+type Pagination struct {
+	Next  string `json:"next"`
+	Total int    `json:"total"`
+}
+
 type bitlyObject interface {
 	deserialize(res []byte)
 }
@@ -19,30 +28,6 @@ type bitlyClient interface {
 	// SendRequest sends the request to the server and
 	// reads the full response into a byte array
 	sendRequest(*http.Request) ([]byte, error)
-}
-
-type BitlyClientInfo struct {
-	Token string
-}
-
-func (c *BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, error) {
-	req, err := http.NewRequest(verb, path, nil)
-	if err != nil {
-		return nil, err
-	}
-	bearer := "Bearer " + c.Token
-	req.Header.Add("Authorization", bearer)
-	return req, nil
-}
-
-func (c *BitlyClientInfo) sendRequest(req *http.Request) ([]byte, error) {
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("Error on response.\n[ERRO] -", err)
-	}
-
-	return ioutil.ReadAll(resp.Body)
 }
 
 type bitlyUserInfo struct {
@@ -59,28 +44,7 @@ type bitlyBitlinks struct {
 	ID   string `json:"id"`
 }
 
-type Pagination struct {
-	Next  string `json:"next"`
-	Total int    `json:"total"`
-}
-
-func (o *bitlyUserInfo) deserialize(res []byte) error {
-
-	if err := json.Unmarshal(res, &o); err != nil {
-		return err
-	}
-	return nil
-
-}
-func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
-
-	if err := json.Unmarshal(res, &o); err != nil {
-		return err
-	}
-	return nil
-
-}
-
+// all package exported methods
 func GetUserInfo(client bitlyClient) (*bitlyUserInfo, error) {
 	req, err := client.createRequest(bitlyAPI+"user", "GET", "")
 	if err != nil {
@@ -138,5 +102,43 @@ func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitL
 
 	bitlinks.Links = links
 	return bitlinks, nil
+
+}
+
+//all package internal methods
+func (c *BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, error) {
+	req, err := http.NewRequest(verb, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	bearer := "Bearer " + c.Token
+	req.Header.Add("Authorization", bearer)
+	return req, nil
+}
+
+func (c *BitlyClientInfo) sendRequest(req *http.Request) ([]byte, error) {
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error on response.\n[ERRO] -", err)
+	}
+
+	return ioutil.ReadAll(resp.Body)
+}
+
+func (o *bitlyUserInfo) deserialize(res []byte) error {
+
+	if err := json.Unmarshal(res, &o); err != nil {
+		return err
+	}
+	return nil
+
+}
+func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
+
+	if err := json.Unmarshal(res, &o); err != nil {
+		return err
+	}
+	return nil
 
 }

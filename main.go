@@ -25,13 +25,13 @@ return map(divideclicksby30,ctcht)
 */
 func main() {
 	token := "5ad8274a49bcd964f23d4b685c272c37de718711"
-	bc := client.BitlyClientInfo{Token: token}
+	bc := &client.BitlyClientInfo{Token: token}
 
 	userInfo, err := client.GetUserInfo(bc)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("UserInfo has name: %s and GroupGuid: %s", userInfo.Name, userInfo.GroupGuid)
+	fmt.Printf("UserInfo has name: %s and GroupGuid: %s\n", userInfo.Name, userInfo.GroupGuid)
 
 	// retrieve all the links and stick into a hashtable
 	groupslinks, err := client.GetBitlinksForGroup(bc, userInfo.GroupGuid)
