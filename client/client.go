@@ -2,10 +2,13 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
+
+const bitlyAPI = "https://api-ssl.bitly.com/v4/"
 
 type bitlyObject interface {
 	deserialize(res []byte)
@@ -22,9 +25,8 @@ type BitlyClientInfo struct {
 	Token string
 }
 
-func (c BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, error) {
-	baseURL := "https://api-ssl.bitly.com/v4/"
-	req, err := http.NewRequest(verb, baseURL+path, nil)
+func (c *BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, error) {
+	req, err := http.NewRequest(verb, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +35,7 @@ func (c BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, 
 	return req, nil
 }
 
-func (c BitlyClientInfo) sendRequest(req *http.Request) ([]byte, error) {
+func (c *BitlyClientInfo) sendRequest(req *http.Request) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -49,12 +51,17 @@ type bitlyUserInfo struct {
 }
 
 type bitlyGroupsBitLinks struct {
-	//Pagination string   `json:"pagination"`
-	Links []bitlyBitlinks `json:"links"`
+	Pagination Pagination      `json:"pagination"`
+	Links      []bitlyBitlinks `json:"links"`
 }
 type bitlyBitlinks struct {
 	Link string `json:"link"`
 	ID   string `json:"id"`
+}
+
+type Pagination struct {
+	Next  string `json:"next"`
+	Total int    `json:"total"`
 }
 
 func (o *bitlyUserInfo) deserialize(res []byte) error {
@@ -75,7 +82,7 @@ func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
 }
 
 func GetUserInfo(client bitlyClient) (*bitlyUserInfo, error) {
-	req, err := client.createRequest("user", "GET", "")
+	req, err := client.createRequest(bitlyAPI+"user", "GET", "")
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +100,9 @@ func GetUserInfo(client bitlyClient) (*bitlyUserInfo, error) {
 }
 
 func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitLinks, error) {
-	path := "groups/" + groupGUID + "/bitlinks"
-	req, err := client.createRequest(path, "GET", "")
+	path := bitlyAPI + "groups/" + groupGUID + "/bitlinks"
+	verb := "GET"
+	req, err := client.createRequest(path, verb, "")
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +113,30 @@ func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitL
 	bitlinks := &bitlyGroupsBitLinks{}
 	err = bitlinks.deserialize(body)
 	if err != nil {
+		fmt.Printf("error is: %s", err.Error())
 		return nil, err
 	}
+
+	links := append([]bitlyBitlinks{}, bitlinks.Links...)
+	for bitlinks.Pagination.Next != "" {
+		req, err = client.createRequest(bitlinks.Pagination.Next, verb, "")
+		if err != nil {
+			return nil, err
+		}
+		body, err = client.sendRequest(req)
+		if err != nil {
+			return nil, err
+		}
+		bitlinks = &bitlyGroupsBitLinks{}
+		err = bitlinks.deserialize(body)
+		if err != nil {
+			return nil, err
+		}
+
+		links = append(links, bitlinks.Links...)
+	}
+
+	bitlinks.Links = links
 	return bitlinks, nil
 
 }
