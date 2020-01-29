@@ -60,16 +60,35 @@ func Test_DeserializeBitlinksByGroupResponse(t *testing.T) {
 		t.Error(err)
 	}
 	if toTest.Links[0].Link != "http://bit.ly/HGDGAX" {
-		t.Error(`bitlyBitlinks.deserialize failed: links`)
+		t.Error(`Bitlink.deserialize failed: links`)
 	}
 	if toTest.Links[0].ID != "1928432" {
-		t.Error(`bitlyBitlinks.deserialize failed: ids`)
+		t.Error(`Bitlink.deserialize failed: ids`)
 	}
 	if toTest.Pagination.Next != "http://next.com" {
-		t.Error(`bitlyBitlinks.deserialize failed: pagination`)
+		t.Error(`Bitlink.deserialize failed: pagination`)
+	}
+}
+
+func Test_DeserializeClickMetrics(t *testing.T) {
+	response := []byte(
+		`{"units":30, "metrics": [{"clicks":27,"value": "US"}, {"clicks": 1000, "value": "China"}]}`)
+	toTest := &ClickMetrics{}
+	err := toTest.deserialize(response)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(toTest.Metrics) != 2 {
+		t.Error(`ClickMetrics.deserialize failed: metrics length`)
+	}
+	if toTest.Metrics[0].Clicks != 27 {
+		t.Error(`ClickMetrics.deserialize failed: clicks`)
 
 	}
+	if toTest.Metrics[0].Country != "US" {
+		t.Error(`ClickMetrics.deserialize failed: country`)
 
+	}
 }
 
 func Test_GetBitlinksByGroupPagination(t *testing.T) {

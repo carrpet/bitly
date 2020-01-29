@@ -36,12 +36,22 @@ type bitlyUserInfo struct {
 }
 
 type bitlyGroupsBitLinks struct {
-	Pagination Pagination      `json:"pagination"`
-	Links      []bitlyBitlinks `json:"links"`
+	Pagination Pagination `json:"pagination"`
+	Links      []Bitlink  `json:"links"`
 }
-type bitlyBitlinks struct {
+type Bitlink struct {
 	Link string `json:"link"`
 	ID   string `json:"id"`
+}
+
+type ClickMetrics struct {
+	//units by default are in days, ie the time range
+	Units   int            `json:"units"`
+	Metrics []CountryClick `json:"metrics"`
+}
+type CountryClick struct {
+	Clicks  int    `json:"clicks"`
+	Country string `json:"value"`
 }
 
 // all package exported methods
@@ -81,7 +91,7 @@ func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitL
 		return nil, err
 	}
 
-	links := append([]bitlyBitlinks{}, bitlinks.Links...)
+	links := append([]Bitlink{}, bitlinks.Links...)
 	for bitlinks.Pagination.Next != "" {
 		req, err = client.createRequest(bitlinks.Pagination.Next, verb, "")
 		if err != nil {
@@ -103,6 +113,10 @@ func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitL
 	bitlinks.Links = links
 	return bitlinks, nil
 
+}
+
+func GetClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
+	return nil, nil
 }
 
 //all package internal methods
@@ -135,6 +149,15 @@ func (o *bitlyUserInfo) deserialize(res []byte) error {
 
 }
 func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
+
+	if err := json.Unmarshal(res, &o); err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (o *ClickMetrics) deserialize(res []byte) error {
 
 	if err := json.Unmarshal(res, &o); err != nil {
 		return err
