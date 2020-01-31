@@ -31,7 +31,33 @@ return map(divideclicksby30,ctcht)
 
 // use this for testing
 //token := "5ad8274a49bcd964f23d4b685c272c37de718711"
-func handleAvgClicks() http.HandlerFunc {
+
+type RequestContext struct {
+	*client.BitlyClientInfo
+}
+
+func NewRequestContext() RequestContext {
+	return RequestContext{&client.BitlyClientInfo{}}
+}
+
+func (c *RequestContext) checkValidRequest(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "No authorization header provided", http.StatusForbidden)
+			return
+		}
+		auths := strings.Split(authHeader, " ")
+		if len(auths) < 2 {
+			http.Error(w, "No bearer token provided", http.StatusForbidden)
+			return
+		}
+		c.Token = auths[1]
+		h(w, r)
+
+	}
+}
+func (c *RequestContext) handleAvgClicks() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		type avgClicksResponse struct {
@@ -41,26 +67,23 @@ func handleAvgClicks() http.HandlerFunc {
 			Unit    int                   `json:"unit"`
 			Metrics []client.CountryClick `json:"metrics"`
 		}
-		authHeader := r.Header.Get("Authorization")
-		authstrings := strings.Split(authHeader, " ")
-		token := authstrings[1]
-		bc := &client.BitlyClientInfo{Token: token}
+
 		clicksByCountry := map[string]int{}
 
-		userInfo, err := client.GetUserInfo(bc)
+		userInfo, err := client.GetUserInfo(c)
 		if err != nil {
 			panic(err)
 		}
 
 		// retrieve all the links and stick into a hashtable
-		grouplinks, err := client.GetBitlinksForGroup(bc, userInfo.GroupGuid)
+		grouplinks, err := client.GetBitlinksForGroup(c, userInfo.GroupGuid)
 		if err != nil {
 			panic(err)
 		}
 
 		var cc *client.ClickMetrics
 		for i := 0; i < len(grouplinks.Links); i++ {
-			cc, err := client.GetClicksByCountry(bc, grouplinks.Links[i])
+			cc, err := client.GetClicksByCountry(c, grouplinks.Links[i])
 			if err != nil {
 				panic(err)
 			}
@@ -102,8 +125,8 @@ func avgClicks(cc *[]client.CountryClick) []client.CountryClick {
 }
 
 func main() {
-
-	http.HandleFunc("/groups/{groupGuid}/countries/averages", handleAvgClicks())
+	context := NewRequestContext()
+	http.HandleFunc("/groups/{groupGuid}/countries/averages", context.checkValidRequest(context.handleAvgClicks()))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }
