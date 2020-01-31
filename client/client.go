@@ -116,7 +116,25 @@ func GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitL
 }
 
 func GetClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
-	return nil, nil
+	path := bitlyAPI + "bitlinks/" + link.ID + "/countries"
+	params := "?units=30"
+	verb := "GET"
+	req, err := client.createRequest(path+params, verb, "")
+	if err != nil {
+		return nil, err
+	}
+	body, err := client.sendRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	metrics := &ClickMetrics{}
+	err = metrics.deserialize(body)
+	if err != nil {
+		fmt.Printf("error is: %s", err.Error())
+		return nil, err
+	}
+	return metrics, nil
+
 }
 
 //all package internal methods
