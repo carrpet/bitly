@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -93,25 +92,24 @@ func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error)
 		panic(err)
 	}
 
-	var cc *ClickMetrics
-	for i := 0; i < len(grouplinks.Links); i++ {
-		cc, err := api.GetClicksByCountry(c, grouplinks.Links[i])
+	for _, link := range grouplinks.Links {
+		cc, err := api.GetClicksByCountry(c, link)
 		if err != nil {
 			panic(err)
 		}
-		for j := 0; j < len(cc.Metrics); j++ {
-			_, ok := clicksByCountry[cc.Metrics[j].Country]
+		for _, m := range cc.Metrics {
+			_, ok := clicksByCountry[m.Country]
 			if !ok {
-				clicksByCountry[cc.Metrics[j].Country] = cc.Metrics[j].Clicks
+				clicksByCountry[m.Country] = m.Clicks
 			} else {
-				clicksByCountry[cc.Metrics[j].Country] += cc.Metrics[j].Clicks
+				clicksByCountry[m.Country] += m.Clicks
 			}
-			fmt.Printf("Clicks By Country: clicks: %d, country: %s\n", cc.Metrics[j].Clicks, cc.Metrics[j].Country)
 		}
 	}
 
-	if cc != nil {
-		return computeAvgClicks(&cc.Metrics), nil
+	if len(clicksByCountry) > 0 {
+		arr := toCountryClickArray(clicksByCountry)
+		return computeAvgClicks(&arr), nil
 	} else {
 		return []CountryClick{}, nil
 	}
@@ -123,6 +121,14 @@ func computeAvgClicks(cc *[]CountryClick) []CountryClick {
 		val.Clicks = val.Clicks / 30
 	}
 	return *cc
+}
+
+func toCountryClickArray(cc map[string]int) []CountryClick {
+	ret := []CountryClick{}
+	for k, v := range cc {
+		ret = append(ret, CountryClick{Clicks: v, Country: k})
+	}
+	return ret
 }
 
 func main() {
