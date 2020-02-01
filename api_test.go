@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"net/http"
@@ -30,6 +30,12 @@ func (c *mockBitlyClient) sendRequest(req *http.Request) ([]byte, error) {
 
 	return []byte{}, nil
 
+}
+
+func Test_GetUserInfo(t *testing.T) {
+	mock := &mockBitlyClient{}
+	api := BitlinksMetricsAPI{}
+	api.GetUserInfo(mock)
 }
 
 // test that deserialization works
@@ -93,16 +99,12 @@ func Test_DeserializeClickMetrics(t *testing.T) {
 
 func Test_GetBitlinksByGroupPagination(t *testing.T) {
 	mock := &mockBitlyClient{Pages: 3}
-	toTest, err := GetBitlinksForGroup(mock, "Bk1hmwBHfQK")
+	api := BitlinksMetricsAPI{}
+	toTest, err := api.GetBitlinksForGroup(mock, "Bk1hmwBHfQK")
 	if err != nil {
 		t.Error(err)
 	}
 	if len(toTest.Links) != 4 {
 		t.Error(`GetBitlinksByGroupPagination failed`)
 	}
-}
-
-func Test_GetUserInfo(t *testing.T) {
-	mock := &mockBitlyClient{}
-	GetUserInfo(mock)
 }

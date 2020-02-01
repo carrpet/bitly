@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bitly/client"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -32,15 +31,7 @@ return map(divideclicksby30,ctcht)
 // use this for testing
 //token := "5ad8274a49bcd964f23d4b685c272c37de718711"
 
-type RequestContext struct {
-	*client.BitlyClientInfo
-}
-
-func NewRequestContext() RequestContext {
-	return RequestContext{&client.BitlyClientInfo{}}
-}
-
-func (c *RequestContext) checkValidRequest(h http.HandlerFunc) http.HandlerFunc {
+func (c *BitlyClientInfo) checkValidRequest(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -57,57 +48,28 @@ func (c *RequestContext) checkValidRequest(h http.HandlerFunc) http.HandlerFunc 
 
 	}
 }
-func (c *RequestContext) handleAvgClicks() http.HandlerFunc {
+func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		type avgClicksResponse struct {
-			Units   int                   `json:"units"`
-			Facet   string                `json:"facet"`
-			UnitRef time.Time             `json:"unit_reference"`
-			Unit    int                   `json:"unit"`
-			Metrics []client.CountryClick `json:"metrics"`
+			Units   int            `json:"units"`
+			Facet   string         `json:"facet"`
+			UnitRef time.Time      `json:"unit_reference"`
+			Unit    int            `json:"unit"`
+			Metrics []CountryClick `json:"metrics"`
 		}
 
-		clicksByCountry := map[string]int{}
+		res, err := c.avgClicks(api)
 
-		userInfo, err := client.GetUserInfo(c)
 		if err != nil {
 			panic(err)
+			//TODO: return proper http error code
 		}
 
-		// retrieve all the links and stick into a hashtable
-		grouplinks, err := client.GetBitlinksForGroup(c, userInfo.GroupGuid)
-		if err != nil {
-			panic(err)
-		}
-
-		var cc *client.ClickMetrics
-		for i := 0; i < len(grouplinks.Links); i++ {
-			cc, err := client.GetClicksByCountry(c, grouplinks.Links[i])
-			if err != nil {
-				panic(err)
-			}
-			for j := 0; j < len(cc.Metrics); j++ {
-				_, ok := clicksByCountry[cc.Metrics[j].Country]
-				if !ok {
-					clicksByCountry[cc.Metrics[j].Country] = cc.Metrics[j].Clicks
-				} else {
-					clicksByCountry[cc.Metrics[j].Country] += cc.Metrics[j].Clicks
-				}
-				fmt.Printf("Clicks By Country: clicks: %d, country: %s\n", cc.Metrics[j].Clicks, cc.Metrics[j].Country)
-			}
-		}
-
-		var metrics []client.CountryClick
-		if cc != nil {
-			metrics = avgClicks(&cc.Metrics)
-		} else {
-			metrics = []client.CountryClick{}
-		}
 		data := avgClicksResponse{
 			Facet:   "countries",
 			UnitRef: time.Now(),
-			Metrics: metrics,
+			Metrics: res,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -117,7 +79,46 @@ func (c *RequestContext) handleAvgClicks() http.HandlerFunc {
 
 }
 
-func avgClicks(cc *[]client.CountryClick) []client.CountryClick {
+func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error) {
+	clicksByCountry := map[string]int{}
+
+	userInfo, err := api.GetUserInfo(c)
+	if err != nil {
+		panic(err)
+	}
+
+	// retrieve all the links and stick into a hashtable
+	grouplinks, err := api.GetBitlinksForGroup(c, userInfo.GroupGuid)
+	if err != nil {
+		panic(err)
+	}
+
+	var cc *ClickMetrics
+	for i := 0; i < len(grouplinks.Links); i++ {
+		cc, err := api.GetClicksByCountry(c, grouplinks.Links[i])
+		if err != nil {
+			panic(err)
+		}
+		for j := 0; j < len(cc.Metrics); j++ {
+			_, ok := clicksByCountry[cc.Metrics[j].Country]
+			if !ok {
+				clicksByCountry[cc.Metrics[j].Country] = cc.Metrics[j].Clicks
+			} else {
+				clicksByCountry[cc.Metrics[j].Country] += cc.Metrics[j].Clicks
+			}
+			fmt.Printf("Clicks By Country: clicks: %d, country: %s\n", cc.Metrics[j].Clicks, cc.Metrics[j].Country)
+		}
+	}
+
+	if cc != nil {
+		return computeAvgClicks(&cc.Metrics), nil
+	} else {
+		return []CountryClick{}, nil
+	}
+
+}
+
+func computeAvgClicks(cc *[]CountryClick) []CountryClick {
 	for _, val := range *cc {
 		val.Clicks = val.Clicks / 30
 	}
@@ -125,8 +126,9 @@ func avgClicks(cc *[]client.CountryClick) []client.CountryClick {
 }
 
 func main() {
-	context := NewRequestContext()
-	http.HandleFunc("/groups/{groupGuid}/countries/averages", context.checkValidRequest(context.handleAvgClicks()))
+	context := BitlyClientInfo{}
+	api := &BitlinksMetricsAPI{}
+	http.HandleFunc("/groups/{groupGuid}/countries/averages", context.checkValidRequest(context.handleAvgClicks(api)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }
