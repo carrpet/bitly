@@ -61,8 +61,8 @@ func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc 
 		res, err := c.avgClicks(api)
 
 		if err != nil {
-			panic(err)
-			//TODO: return proper http error code
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		data := avgClicksResponse{
@@ -75,7 +75,6 @@ func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc 
 		json.NewEncoder(w).Encode(data)
 
 	}
-
 }
 
 func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error) {
@@ -83,19 +82,19 @@ func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error)
 
 	userInfo, err := api.GetUserInfo(c)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// retrieve all the links and stick into a hashtable
 	grouplinks, err := api.GetBitlinksForGroup(c, userInfo.GroupGuid)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for _, link := range grouplinks.Links {
 		cc, err := api.GetClicksByCountry(c, link)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		for _, m := range cc.Metrics {
 			_, ok := clicksByCountry[m.Country]

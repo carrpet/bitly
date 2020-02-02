@@ -1,19 +1,33 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type mockBitlinksMetricsAPI struct{}
+type mockBitlinksMetricsAPI struct {
+	getUserInfo              *bitlyUserInfo
+	getUserInfoError         error
+	getBitlinksForGroup      *bitlyGroupsBitLinks
+	getBitlinksForGroupError error
+	getClicksByCountry       *ClickMetrics
+	getClicksByCountryError  error
+}
 
 func (m *mockBitlinksMetricsAPI) GetUserInfo(c bitlyClient) (*bitlyUserInfo, error) {
+	if m.getUserInfoError != nil {
+		return nil, m.getUserInfoError
+	}
 	return &bitlyUserInfo{GroupGuid: "abcdefgh", Name: "petertest"}, nil
 
 }
 
 func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string) (*bitlyGroupsBitLinks, error) {
+	if m.getBitlinksForGroupError != nil {
+		return nil, m.getBitlinksForGroupError
+	}
 	l := []Bitlink{{Link: "http://something", ID: "something"},
 		{Link: "http://something1", ID: "something1"},
 		{Link: "http://something2", ID: "something2"},
@@ -53,7 +67,7 @@ func TestAvgClickMetricsHandler(t *testing.T) {
 
 	cc, err := context.avgClicks(mock)
 	if err != nil {
-		t.Error("We fucked up!")
+		t.Errorf("avgClicks returned error: %s", err.Error())
 	}
 	if len(cc) != 5 {
 		t.Errorf("avgClicks return value has length %d, expected length 5", len(cc))
@@ -96,6 +110,23 @@ func TestHandleAvgMetricsNoAuth(t *testing.T) {
 	toTest.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusForbidden {
 		t.Errorf("HandleAvgMetricsNoAuth.ServeHTTP result status code: expected %d, got %d", http.StatusForbidden, w.Result().StatusCode)
+	}
+
+}
+
+func TestHandleAvgMetricsInternalError(t *testing.T) {
+	req, err := http.NewRequest("GET", "/groups/Bk1hmwBHfQK/countries/averages", nil)
+	if err != nil {
+		t.Error(err)
+	}
+	w := httptest.NewRecorder()
+	c := BitlyClientInfo{}
+	mock := &mockBitlinksMetricsAPI{}
+	mock.getBitlinksForGroupError = errors.New("Could not retrieve bitlinks for the requested group")
+	toTest := c.handleAvgClicks(mock)
+	toTest.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusInternalServerError {
+		t.Errorf("HandleAvgMetricsInternalError.ServeHTTP result status code: expected %d, got %d", http.StatusInternalServerError, w.Result().StatusCode)
 	}
 
 }

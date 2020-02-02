@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -187,8 +186,8 @@ func (c *BitlyClientInfo) sendRequest(req *http.Request) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error on response.\n[ERRO] -", err)
+		return nil, err
 	}
-
+	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
 }
