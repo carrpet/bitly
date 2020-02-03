@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // The problem:
@@ -29,6 +35,8 @@ return map(divideclicksby30,ctcht)
 
 // use this for testing
 //token := "5ad8274a49bcd964f23d4b685c272c37de718711"
+
+const HTTP_TIMEOUT = 10 * time.Second
 
 func (c *BitlyClientInfo) checkValidRequest(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -133,9 +141,35 @@ func toCountryClickArray(cc map[string]int) []CountryClick {
 }
 
 func main() {
-	context := BitlyClientInfo{}
+	clientInfo := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
-	http.HandleFunc("/groups/{groupGuid}/countries/averages", context.checkValidRequest(context.handleAvgClicks(api)))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r := mux.NewRouter()
+	http.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkValidRequest(clientInfo.handleAvgClicks(api)))
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         ":8080",
+		ReadTimeout:  HTTP_TIMEOUT,
+		WriteTimeout: HTTP_TIMEOUT,
+	}
 
+	//goroutine to start the server
+	go func() {
+		log.Println("Starting Bitly Metrics server")
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	log.Printf("Bitly Metrics server listening on: %s", srv.Addr)
+	awaitShutdown(srv)
+}
+
+func awaitShutdown(srv *http.Server) {
+	interruptChan := make(chan os.Signal, 1)
+	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-interruptChan
+	ctx, cancel := context.WithTimeout(context.Background(), HTTP_TIMEOUT)
+	defer cancel()
+	srv.Shutdown(ctx)
+	log.Println("Shutting down Bitly Metrics server")
+	os.Exit(0)
 }

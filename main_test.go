@@ -7,6 +7,10 @@ import (
 	"testing"
 )
 
+// A mock client for consumers of the BitlinksMetrics interface.
+// Tests setup desired response of API calls by setting respective method's
+// response value in the mock, or setting <method_name>Error to the desired
+// returning error.
 type mockBitlinksMetricsAPI struct {
 	getUserInfo              *UserInfo
 	getUserInfoError         error
@@ -16,17 +20,27 @@ type mockBitlinksMetricsAPI struct {
 	getClicksByCountryError  error
 }
 
+// GetUserInfo is a mock implementation, returning a default value unless the
+// mock's getUserInfo or getUserInfoError field is set
 func (m *mockBitlinksMetricsAPI) GetUserInfo(c bitlyClient) (*UserInfo, error) {
 	if m.getUserInfoError != nil {
 		return nil, m.getUserInfoError
+	}
+	if m.getUserInfo != nil {
+		return m.getUserInfo, nil
 	}
 	return &UserInfo{GroupGuid: "abcdefgh", Name: "petertest"}, nil
 
 }
 
+// GetBitlinksForGroup is a mock implementation, returning a default value unless the
+// mock's getBitlinksForGroup or getBitlinksForGroupError field is set
 func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string) (*GroupBitlinks, error) {
 	if m.getBitlinksForGroupError != nil {
 		return nil, m.getBitlinksForGroupError
+	}
+	if m.getBitlinksForGroup != nil {
+		return m.getBitlinksForGroup, nil
 	}
 	l := []Bitlink{{Link: "http://something", ID: "something"},
 		{Link: "http://something1", ID: "something1"},
@@ -36,7 +50,15 @@ func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string)
 
 }
 
+// GetBitlinksForGroup is a mock implementation, returning a default value unless the
+// mock's getBitlinksForGroup or getBitlinksForGroupError field is set
 func (m *mockBitlinksMetricsAPI) GetBitlinkClicksByCountry(c bitlyClient, b Bitlink) (*ClickMetrics, error) {
+	if m.getClicksByCountryError != nil {
+		return nil, m.getClicksByCountryError
+	}
+	if m.getClicksByCountry != nil {
+		return m.getClicksByCountry, nil
+	}
 	cc := []CountryClick{
 		{Clicks: 80, Country: "US"},
 		{Clicks: 40, Country: "Argentina"},
@@ -78,6 +100,20 @@ func TestAvgClickMetricsHandler(t *testing.T) {
 			t.Errorf("avgClicks error: Number of clicks for country %s: expected %d, received %d", item.Country, expected[item.Country], item.Clicks)
 		}
 	}
+}
+
+func TestAvgClicksNoLinks(t *testing.T) {
+
+	mock := &mockBitlinksMetricsAPI{getBitlinksForGroup: &GroupBitlinks{Links: []Bitlink{}}}
+	context := BitlyClientInfo{}
+	cc, err := context.avgClicks(mock)
+	if err != nil {
+		t.Errorf("avgClicksNoLinks error: %s", err.Error())
+	}
+	if len(cc) != 0 {
+		t.Errorf("avgClicksNoLinks error: expected return value length was 0, received length %d", len(cc))
+	}
+
 }
 
 // HTTP Server tests

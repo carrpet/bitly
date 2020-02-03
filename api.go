@@ -13,6 +13,7 @@ const HTTP_GET = "GET"
 // The period of time over which to count the number of clicks.
 const DEFAULT_DAYS = 30
 
+// BitlinksMetrics implementation that consumes the live Bitly API
 type bitlinksMetricsAPI struct{}
 
 // API dependencies that go across the wire

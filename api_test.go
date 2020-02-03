@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// A mock client for functions relying on mocked values of bitlyClient interface.
+// A mock client for consumers of the bitlyClient interface.
 // Tests setup desired response of sendRequest by setting the
 // sendRequestResponse and err field.  They can also simulate paginated
 // responses by setting the Pages field to an int greater than 1.
@@ -35,7 +35,7 @@ func (c *mockBitlyClient) sendRequest(req *http.Request) ([]byte, error) {
 }
 
 // Deserialization tests for response structs
-func Test_DeserializeUserResponse(t *testing.T) {
+func TestDeserializeUserResponse(t *testing.T) {
 
 	response := []byte(`{"name":"carrpet912","default_group_guid":"Bk1hmwBHfQK"}`)
 	toTest := &UserInfo{}
@@ -48,7 +48,7 @@ func Test_DeserializeUserResponse(t *testing.T) {
 	}
 }
 
-func Test_DeserializeBitlinksByGroupResponse(t *testing.T) {
+func TestDeserializeBitlinksByGroupResponse(t *testing.T) {
 	// assert that we are getting and storing the link's id
 	response := []byte(`{"pagination": {
       "total":1,
@@ -71,7 +71,7 @@ func Test_DeserializeBitlinksByGroupResponse(t *testing.T) {
 	}
 }
 
-func Test_DeserializeClickMetrics(t *testing.T) {
+func TestDeserializeClickMetrics(t *testing.T) {
 	response := []byte(
 		`{"units":30, "metrics": [{"clicks":27,"value": "US"}, {"clicks": 1000, "value": "China"}]}`)
 	toTest := &ClickMetrics{}
@@ -92,13 +92,13 @@ func Test_DeserializeClickMetrics(t *testing.T) {
 }
 
 // Tests for Bitly API methods
-func Test_GetUserInfo(t *testing.T) {
+func TestGetUserInfo(t *testing.T) {
 	mock := &mockBitlyClient{}
 	api := bitlinksMetricsAPI{}
 	api.GetUserInfo(mock)
 }
 
-func Test_GetBitlinksForGroupSinglePage(t *testing.T) {
+func TestGetBitlinksForGroupSinglePage(t *testing.T) {
 	resp := []byte(`{"links": [{"link": "http://bit.ly/UFHISO","id": "bit.ly/UFHISO"},
 		{"link": "http://nyti.ms/2GnOpXm","id": "nyti.ms/2GnOpXm"}],
 		"pagination": {
@@ -121,7 +121,7 @@ func Test_GetBitlinksForGroupSinglePage(t *testing.T) {
 	}
 }
 
-func Test_GetBitlinksByGroupPagination(t *testing.T) {
+func TestGetBitlinksForGroupPagination(t *testing.T) {
 	singlePageResp := []byte(`{"links": [{"link": "http://bit.ly/UFHISO","id": "bit.ly/UFHISO"},
 		{"link": "http://nyti.ms/2GnOpXm","id": "nyti.ms/2GnOpXm"}],
 		"pagination": {
@@ -143,7 +143,26 @@ func Test_GetBitlinksByGroupPagination(t *testing.T) {
 	}
 }
 
-func Test_GetBitlinkClicksByCountry(t *testing.T) {
+func TestGetBitlinksForGroupNoLinks(t *testing.T) {
+	resp := []byte(`{"links": [],
+		"pagination": {
+					"total":0,
+					"page":1,
+					"size":50,
+					"next":"",
+					"prev":""}}`)
+	mock := &mockBitlyClient{sendRequestResponse: resp}
+	api := bitlinksMetricsAPI{}
+	toTest, err := api.GetBitlinksForGroup(mock, "ABC3DgEF")
+	if err != nil {
+		t.Error(err)
+	}
+	if len(toTest.Links) != 0 {
+		t.Errorf(`GetBitlinksByGroupNoLinks failed: number of links, expected: %d received: %d`, 0, len(toTest.Links))
+	}
+}
+
+func TestGetBitlinkClicksByCountry(t *testing.T) {
 	resp := []byte(`{"units":30, "facet":"countries", "unit":"day",
 		"metrics": [{"clicks":20,"value":"US"}, {"clicks":809,"value":"Mexico"}]}`)
 	mock := &mockBitlyClient{sendRequestResponse: resp}
