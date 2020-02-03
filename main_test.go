@@ -8,23 +8,23 @@ import (
 )
 
 type mockBitlinksMetricsAPI struct {
-	getUserInfo              *bitlyUserInfo
+	getUserInfo              *UserInfo
 	getUserInfoError         error
-	getBitlinksForGroup      *bitlyGroupsBitLinks
+	getBitlinksForGroup      *GroupBitlinks
 	getBitlinksForGroupError error
 	getClicksByCountry       *ClickMetrics
 	getClicksByCountryError  error
 }
 
-func (m *mockBitlinksMetricsAPI) GetUserInfo(c bitlyClient) (*bitlyUserInfo, error) {
+func (m *mockBitlinksMetricsAPI) GetUserInfo(c bitlyClient) (*UserInfo, error) {
 	if m.getUserInfoError != nil {
 		return nil, m.getUserInfoError
 	}
-	return &bitlyUserInfo{GroupGuid: "abcdefgh", Name: "petertest"}, nil
+	return &UserInfo{GroupGuid: "abcdefgh", Name: "petertest"}, nil
 
 }
 
-func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string) (*bitlyGroupsBitLinks, error) {
+func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string) (*GroupBitlinks, error) {
 	if m.getBitlinksForGroupError != nil {
 		return nil, m.getBitlinksForGroupError
 	}
@@ -32,7 +32,7 @@ func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string)
 		{Link: "http://something1", ID: "something1"},
 		{Link: "http://something2", ID: "something2"},
 	}
-	return &bitlyGroupsBitLinks{Links: l}, nil
+	return &GroupBitlinks{Links: l}, nil
 
 }
 
@@ -52,15 +52,12 @@ func (m *mockBitlinksMetricsAPI) GetClicksByCountry(c bitlyClient, b Bitlink) (*
 
 func TestAvgClickMetricsHandler(t *testing.T) {
 
-	expected := []struct {
-		country        string
-		expectedClicks int
-	}{
-		{"US", 80 * 3},
-		{"Argentina", 40 * 3},
-		{"Norway", 10 * 3},
-		{"Sweden", 60 * 3},
-		{"China", 1200 * 3},
+	expected := map[string]int{
+		"US":        80 * 3,
+		"Argentina": 40 * 3,
+		"Norway":    10 * 3,
+		"Sweden":    60 * 3,
+		"China":     1200 * 3,
 	}
 	context := BitlyClientInfo{}
 	mock := &mockBitlinksMetricsAPI{}
@@ -72,13 +69,15 @@ func TestAvgClickMetricsHandler(t *testing.T) {
 	if len(cc) != 5 {
 		t.Errorf("avgClicks return value has length %d, expected length 5", len(cc))
 	}
-	for i, item := range cc {
-		if expected[i].country != item.Country || expected[i].expectedClicks != item.Clicks {
-			t.Errorf("avgClicks return value: expected country %s and clicks %d, received country %s and clicks %d",
-				expected[i].country, expected[i].expectedClicks, item.Country, item.Clicks)
+	for _, item := range cc {
+		if _, ok := expected[item.Country]; !ok {
+			t.Errorf("avgClicks error: Country %s not found in returned results", item.Country)
+		}
+
+		if expected[item.Country] != item.Clicks {
+			t.Errorf("avgClicks error: Number of clicks for country %s: expected %d, received %d", item.Country, expected[item.Country], item.Clicks)
 		}
 	}
-
 }
 
 // HTTP Server tests
@@ -90,7 +89,7 @@ func TestHandleAvgMetrics(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	c := BitlyClientInfo{}
-	api := &BitlinksMetricsAPI{}
+	api := &bitlinksMetricsAPI{}
 	toTest := c.checkValidRequest(c.handleAvgClicks(api))
 	toTest.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusOK {
@@ -105,7 +104,7 @@ func TestHandleAvgMetricsNoAuth(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	c := BitlyClientInfo{}
-	api := &BitlinksMetricsAPI{}
+	api := &bitlinksMetricsAPI{}
 	toTest := c.checkValidRequest(c.handleAvgClicks(api))
 	toTest.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusForbidden {

@@ -132,7 +132,7 @@ func toCountryClickArray(cc map[string]int) []CountryClick {
 
 func main() {
 	context := BitlyClientInfo{}
-	api := &BitlinksMetricsAPI{}
+	api := &bitlinksMetricsAPI{}
 	http.HandleFunc("/groups/{groupGuid}/countries/averages", context.checkValidRequest(context.handleAvgClicks(api)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 

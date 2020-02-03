@@ -9,18 +9,17 @@ import (
 
 const bitlyAPI = "https://api-ssl.bitly.com/v4/"
 
-type BitlinksMetricsAPI struct{}
+type bitlinksMetricsAPI struct{}
 
 type bitlyClient interface {
 	createRequest(path, verb, body string) (*http.Request, error)
-	// SendRequest sends the request to the server and
-	// reads the full response into a byte array
 	sendRequest(*http.Request) ([]byte, error)
 }
 
+//main API interface by which to retrieve Bitlink Metrics
 type BitlinksMetrics interface {
-	GetUserInfo(bitlyClient) (*bitlyUserInfo, error)
-	GetBitlinksForGroup(bitlyClient, string) (*bitlyGroupsBitLinks, error)
+	GetUserInfo(bitlyClient) (*UserInfo, error)
+	GetBitlinksForGroup(bitlyClient, string) (*GroupBitlinks, error)
 	GetClicksByCountry(bitlyClient, Bitlink) (*ClickMetrics, error)
 }
 
@@ -28,16 +27,19 @@ type BitlyClientInfo struct {
 	Token string
 }
 
+/*
 type bitlyObject interface {
 	deserialize(res []byte)
 }
+*/
 
-type bitlyUserInfo struct {
+// API responses
+type UserInfo struct {
 	GroupGuid string `json:"default_group_guid"`
 	Name      string `json:"name"`
 }
 
-type bitlyGroupsBitLinks struct {
+type GroupBitlinks struct {
 	Pagination Pagination `json:"pagination"`
 	Links      []Bitlink  `json:"links"`
 }
@@ -63,7 +65,7 @@ type CountryClick struct {
 }
 
 // all package exported methods
-func (b *BitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*bitlyUserInfo, error) {
+func (b *bitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*UserInfo, error) {
 	req, err := client.createRequest(bitlyAPI+"user", "GET", "")
 	if err != nil {
 		return nil, err
@@ -72,7 +74,7 @@ func (b *BitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*bitlyUserInfo, er
 	if err != nil {
 		return nil, err
 	}
-	userInfo := &bitlyUserInfo{}
+	userInfo := &UserInfo{}
 	err = userInfo.deserialize(body)
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func (b *BitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*bitlyUserInfo, er
 
 }
 
-func (b *BitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID string) (*bitlyGroupsBitLinks, error) {
+func (b *bitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID string) (*GroupBitlinks, error) {
 	path := bitlyAPI + "groups/" + groupGUID + "/bitlinks"
 	verb := "GET"
 	req, err := client.createRequest(path, verb, "")
@@ -92,7 +94,7 @@ func (b *BitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID s
 	if err != nil {
 		return nil, err
 	}
-	bitlinks := &bitlyGroupsBitLinks{}
+	bitlinks := &GroupBitlinks{}
 	err = bitlinks.deserialize(body)
 	if err != nil {
 		fmt.Printf("error is: %s", err.Error())
@@ -109,7 +111,7 @@ func (b *BitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID s
 		if err != nil {
 			return nil, err
 		}
-		bitlinks = &bitlyGroupsBitLinks{}
+		bitlinks = &GroupBitlinks{}
 		err = bitlinks.deserialize(body)
 		if err != nil {
 			return nil, err
@@ -123,7 +125,7 @@ func (b *BitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID s
 
 }
 
-func (b *BitlinksMetricsAPI) GetClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
+func (b *bitlinksMetricsAPI) GetClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
 	path := bitlyAPI + "bitlinks/" + link.ID + "/countries"
 	params := "?units=30"
 	verb := "GET"
@@ -145,7 +147,8 @@ func (b *BitlinksMetricsAPI) GetClicksByCountry(client bitlyClient, link Bitlink
 
 }
 
-func (o *bitlyUserInfo) deserialize(res []byte) error {
+//package internal methods
+func (o *UserInfo) deserialize(res []byte) error {
 
 	if err := json.Unmarshal(res, &o); err != nil {
 		return err
@@ -153,7 +156,7 @@ func (o *bitlyUserInfo) deserialize(res []byte) error {
 	return nil
 
 }
-func (o *bitlyGroupsBitLinks) deserialize(res []byte) error {
+func (o *GroupBitlinks) deserialize(res []byte) error {
 
 	if err := json.Unmarshal(res, &o); err != nil {
 		return err

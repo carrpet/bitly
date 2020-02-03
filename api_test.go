@@ -34,7 +34,7 @@ func (c *mockBitlyClient) sendRequest(req *http.Request) ([]byte, error) {
 
 func Test_GetUserInfo(t *testing.T) {
 	mock := &mockBitlyClient{}
-	api := BitlinksMetricsAPI{}
+	api := bitlinksMetricsAPI{}
 	api.GetUserInfo(mock)
 }
 
@@ -42,13 +42,13 @@ func Test_GetUserInfo(t *testing.T) {
 func Test_DeserializeUserResponse(t *testing.T) {
 
 	response := []byte(`{"name":"carrpet912","default_group_guid":"Bk1hmwBHfQK"}`)
-	toTest := &bitlyUserInfo{}
+	toTest := &UserInfo{}
 	err := toTest.deserialize(response)
 	if err != nil {
 		t.Error(err)
 	}
 	if toTest.GroupGuid != "Bk1hmwBHfQK" {
-		t.Error(`bitlyUserInfo.deserialize failed`)
+		t.Error(`UserInfo.deserialize failed`)
 	}
 
 }
@@ -60,7 +60,7 @@ func Test_DeserializeBitlinksByGroupResponse(t *testing.T) {
       "page":0,
       "next": "http://next.com"
     }, "links": [{"link": "http://bit.ly/HGDGAX","id": "1928432"}]}`)
-	toTest := &bitlyGroupsBitLinks{}
+	toTest := &GroupBitlinks{}
 	err := toTest.deserialize(response)
 	if err != nil {
 		t.Error(err)
@@ -99,7 +99,7 @@ func Test_DeserializeClickMetrics(t *testing.T) {
 
 func Test_GetBitlinksByGroupPagination(t *testing.T) {
 	mock := &mockBitlyClient{Pages: 3}
-	api := BitlinksMetricsAPI{}
+	api := bitlinksMetricsAPI{}
 	toTest, err := api.GetBitlinksForGroup(mock, "Bk1hmwBHfQK")
 	if err != nil {
 		t.Error(err)
