@@ -15,6 +15,7 @@ const DEFAULT_DAYS = 30
 
 type bitlinksMetricsAPI struct{}
 
+// API dependencies that go across the wire
 type bitlyClient interface {
 	createRequest(path, verb, body string) (*http.Request, error)
 	sendRequest(*http.Request) ([]byte, error)
@@ -27,6 +28,8 @@ type BitlinksMetrics interface {
 	GetBitlinkClicksByCountry(bitlyClient, Bitlink) (*ClickMetrics, error)
 }
 
+// BitlyClientInfo holds relevant data that
+// is needed across requests
 type BitlyClientInfo struct {
 	Token string
 }
@@ -52,7 +55,7 @@ type Pagination struct {
 }
 
 type ClickMetrics struct {
-	//units by default are in days, ie the time range
+	//units are in days by default
 	Units   int            `json:"units"`
 	Metrics []CountryClick `json:"metrics"`
 }
@@ -169,7 +172,6 @@ func (o *ClickMetrics) deserialize(res []byte) error {
 
 }
 
-//all package internal methods
 func (c *BitlyClientInfo) createRequest(path, verb, body string) (*http.Request, error) {
 	req, err := http.NewRequest(verb, path, nil)
 	if err != nil {
