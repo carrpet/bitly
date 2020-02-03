@@ -77,6 +77,8 @@ func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc 
 	}
 }
 
+// avgClicks does the brunt of the handler's work, calling the API methods,
+// aggregating the results and computing the average values for the response.
 func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error) {
 	clicksByCountry := map[string]int{}
 
@@ -92,7 +94,7 @@ func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error)
 	}
 
 	for _, link := range grouplinks.Links {
-		cc, err := api.GetClicksByCountry(c, link)
+		cc, err := api.GetBitlinkClicksByCountry(c, link)
 		if err != nil {
 			return nil, err
 		}
@@ -108,16 +110,16 @@ func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error)
 
 	if len(clicksByCountry) > 0 {
 		arr := toCountryClickArray(clicksByCountry)
-		return computeAvgClicks(&arr), nil
+		return computeAvgClicks(&arr, DEFAULT_DAYS), nil
 	} else {
 		return []CountryClick{}, nil
 	}
 
 }
 
-func computeAvgClicks(cc *[]CountryClick) []CountryClick {
+func computeAvgClicks(cc *[]CountryClick, days int) []CountryClick {
 	for _, val := range *cc {
-		val.Clicks = val.Clicks / 30
+		val.Clicks = val.Clicks / days
 	}
 	return *cc
 }

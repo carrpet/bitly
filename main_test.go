@@ -36,7 +36,7 @@ func (m *mockBitlinksMetricsAPI) GetBitlinksForGroup(c bitlyClient, guid string)
 
 }
 
-func (m *mockBitlinksMetricsAPI) GetClicksByCountry(c bitlyClient, b Bitlink) (*ClickMetrics, error) {
+func (m *mockBitlinksMetricsAPI) GetBitlinkClicksByCountry(c bitlyClient, b Bitlink) (*ClickMetrics, error) {
 	cc := []CountryClick{
 		{Clicks: 80, Country: "US"},
 		{Clicks: 40, Country: "Argentina"},

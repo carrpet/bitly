@@ -2,12 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 const bitlyAPI = "https://api-ssl.bitly.com/v4/"
+const HTTP_GET = "GET"
+
+// The period of time over which to count the number of clicks.
+const DEFAULT_DAYS = 30
 
 type bitlinksMetricsAPI struct{}
 
@@ -20,18 +24,12 @@ type bitlyClient interface {
 type BitlinksMetrics interface {
 	GetUserInfo(bitlyClient) (*UserInfo, error)
 	GetBitlinksForGroup(bitlyClient, string) (*GroupBitlinks, error)
-	GetClicksByCountry(bitlyClient, Bitlink) (*ClickMetrics, error)
+	GetBitlinkClicksByCountry(bitlyClient, Bitlink) (*ClickMetrics, error)
 }
 
 type BitlyClientInfo struct {
 	Token string
 }
-
-/*
-type bitlyObject interface {
-	deserialize(res []byte)
-}
-*/
 
 // API responses
 type UserInfo struct {
@@ -66,7 +64,7 @@ type CountryClick struct {
 
 // all package exported methods
 func (b *bitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*UserInfo, error) {
-	req, err := client.createRequest(bitlyAPI+"user", "GET", "")
+	req, err := client.createRequest(bitlyAPI+"user", HTTP_GET, "")
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +83,7 @@ func (b *bitlinksMetricsAPI) GetUserInfo(client bitlyClient) (*UserInfo, error) 
 
 func (b *bitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID string) (*GroupBitlinks, error) {
 	path := bitlyAPI + "groups/" + groupGUID + "/bitlinks"
-	verb := "GET"
+	verb := HTTP_GET
 	req, err := client.createRequest(path, verb, "")
 	if err != nil {
 		return nil, err
@@ -97,7 +95,6 @@ func (b *bitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID s
 	bitlinks := &GroupBitlinks{}
 	err = bitlinks.deserialize(body)
 	if err != nil {
-		fmt.Printf("error is: %s", err.Error())
 		return nil, err
 	}
 
@@ -125,11 +122,10 @@ func (b *bitlinksMetricsAPI) GetBitlinksForGroup(client bitlyClient, groupGUID s
 
 }
 
-func (b *bitlinksMetricsAPI) GetClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
+func (b *bitlinksMetricsAPI) GetBitlinkClicksByCountry(client bitlyClient, link Bitlink) (*ClickMetrics, error) {
 	path := bitlyAPI + "bitlinks/" + link.ID + "/countries"
-	params := "?units=30"
-	verb := "GET"
-	req, err := client.createRequest(path+params, verb, "")
+	params := "?units=" + strconv.Itoa(DEFAULT_DAYS)
+	req, err := client.createRequest(path+params, HTTP_GET, "")
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +136,6 @@ func (b *bitlinksMetricsAPI) GetClicksByCountry(client bitlyClient, link Bitlink
 	metrics := &ClickMetrics{}
 	err = metrics.deserialize(body)
 	if err != nil {
-		fmt.Printf("error is: %s", err.Error())
 		return nil, err
 	}
 	return metrics, nil
