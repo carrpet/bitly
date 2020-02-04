@@ -144,7 +144,7 @@ func main() {
 	clientInfo := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
 	r := mux.NewRouter()
-	http.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkValidRequest(clientInfo.handleAvgClicks(api)))
+	r.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkValidRequest(clientInfo.handleAvgClicks(api)))
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
