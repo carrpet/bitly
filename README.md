@@ -24,8 +24,8 @@ https://golang.org/doc/install
 
 ## Running the Tests
 All the tests live in the main package so it suffices to execute from the root project directory:
-```go test
-```
+
+```go test```
 
 There are 3 levels of tests.  At the highest level are the HTTP tests, which test the response codes
 based on various input conditions and mock the handler internal dependencies.
