@@ -7,8 +7,15 @@ default group over a time interval (default 30 days) by country.
 
 ## Getting Started
 
-Download the project into your desired directory. All remaining instructions
-assume that the commands are run from the root directory of the project.  
+Download the project into your desired directory. The project was delivered in a compressed
+archive using ```tar``` and named ```pcbitly.tar```.
+To unpack this into useable format, navigate to the directory where the .tar file
+lives and run
+
+```tar -zxvf pcbitly.tar -C <path_to_extract_to>```
+
+All remaining instructions assume that the commands are run from the root directory
+(ie. directory where it was extracted to) of the project.  
 
 ### Prerequisites
 
