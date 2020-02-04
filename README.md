@@ -1,4 +1,4 @@
-#Bitly Backend Coding Challenge Submission
+# Bitly Backend Coding Challenge Submission
 
 An http server implementation of the Bitly REST API
 ```GET /groups/{groupGuid}/countries/averages```
@@ -10,13 +10,13 @@ default group over a time interval (default 30 days) by country.
 Download the project into your desired directory. All remaining instructions
 assume that the commands are run from the root directory of the project.  
 
-##Prerequisites
+### Prerequisites
 
 It is recommended that you have Docker installed as well as the latest Go version
 (the app was tested against Go 1.13).  The resulting docker image is fairly large
 at ~774MB just as a heads up.  
 
-##Running the Tests
+## Running the Tests
 All the tests live in the main package so it suffices to execute from the root project directory:
 ```go test
 ```
@@ -28,7 +28,7 @@ aggregates the data from the API and does the computation for the response. Thes
 mock the API dependencies.  Third are the API tests which exercise the API functionality
 and mock the over the wire dependencies.
 
-##Installing
+### Installing
 
 You should first run the automated tests before installing.  See above section.
 
@@ -67,7 +67,7 @@ docker container stop <containerID>
 ```
 which will stop the container.  
 
-##App Instructions
+## App Instructions
 Running the application exposes the HTTP service on localhost over port 8080
 by default. You can then consume the service with your desired HTTP client.
 The service exposes only one RESTful endpoint:
@@ -86,7 +86,7 @@ key-value pair for this header should be as follows:
 The returned data is the average number of clicks, over a 30 day period, for all
 Bitlinks in the group corresponding to the provided groupGuid, by country.
 
-##Performance, Bottlenecks, Future Work, and Optimizations
+## Performance, Bottlenecks, Future Work, and Optimizations
 Pagination naively depends on the default number of results returned by the
 Bitly API (default according to the documentation is 50).  It makes a request
 for each next link returned, and won't terminate until the next link is empty.
