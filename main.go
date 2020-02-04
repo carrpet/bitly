@@ -140,11 +140,19 @@ func toCountryClickArray(cc map[string]int) []CountryClick {
 	return ret
 }
 
+func handleTest() http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`hello there!`))
+	}
+}
+
 func main() {
 	clientInfo := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
 	r := mux.NewRouter()
 	r.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkValidRequest(clientInfo.handleAvgClicks(api)))
+	r.HandleFunc("/test", handleTest())
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
