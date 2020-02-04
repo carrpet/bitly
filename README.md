@@ -1,4 +1,4 @@
-# Bitly Backend Coding Challenge Submission
+# Bitly Backend Coding Challenge Submission - Peter Carr
 
 An http server implementation of the Bitly REST API
 ```GET /groups/{groupGuid}/countries/averages```
@@ -14,7 +14,13 @@ assume that the commands are run from the root directory of the project.
 
 It is recommended that you have Docker installed as well as the latest Go version
 (the app was tested against Go 1.13).  The resulting docker image is fairly large
-at ~774MB just as a heads up.  
+at ~774MB just as a heads up.
+
+Installing Docker depends on your platform.  More information can be found here:
+https://docs.docker.com/install/
+
+Installing Go also depends on your platform.  More information can be found here:
+https://golang.org/doc/install
 
 ## Running the Tests
 All the tests live in the main package so it suffices to execute from the root project directory:
@@ -85,6 +91,16 @@ key-value pair for this header should be as follows:
 
 The returned data is the average number of clicks, over a 30 day period, for all
 Bitlinks in the group corresponding to the provided groupGuid, by country.
+
+Here is an example request using cURL:
+```
+curl --location --request GET 'localhost:8080/groups/Bk1hmwBHQK/countries/averages' \
+--header 'Authorization: Bearer xxxxxxxxxxxxxxxxxxxxxxxxxxx'
+```
+And the JSON response:
+```
+{"units":0,"facet":"countries","unit_reference":"2020-02-03T19:07:15.3892072-07:00","unit":0,"metrics":[{"clicks":2,"value":"US"},{"clicks":1,"value":"DE"}]}
+```
 
 ## Performance, Bottlenecks, Future Work, and Optimizations
 Pagination naively depends on the default number of results returned by the

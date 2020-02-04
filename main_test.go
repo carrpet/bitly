@@ -71,7 +71,6 @@ func (m *mockBitlinksMetricsAPI) GetBitlinkClicksByCountry(c bitlyClient, b Bitl
 }
 
 // Main handler tests
-
 func TestAvgClickMetricsHandler(t *testing.T) {
 
 	expected := map[string]int{
@@ -126,7 +125,7 @@ func TestHandleAvgMetrics(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
-	toTest := c.checkValidRequest(c.handleAvgClicks(api))
+	toTest := c.checkAuthorizedRequest(c.handleAvgClicks(api))
 	toTest.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusOK {
 		t.Errorf("HandleAvgMetrics.ServeHTTP result status code: expected %d, got %d", http.StatusOK, w.Result().StatusCode)
@@ -141,7 +140,7 @@ func TestHandleAvgMetricsNoAuth(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
-	toTest := c.checkValidRequest(c.handleAvgClicks(api))
+	toTest := c.checkAuthorizedRequest(c.handleAvgClicks(api))
 	toTest.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusForbidden {
 		t.Errorf("HandleAvgMetricsNoAuth.ServeHTTP result status code: expected %d, got %d", http.StatusForbidden, w.Result().StatusCode)

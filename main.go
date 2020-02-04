@@ -14,31 +14,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// The problem:
-
-// To get all the bitlinks for a user's default group then for each bitlink
-// get the number of user clicks by country, add all the clicks up by country
-// then we divide those numbers by 30 and return a list of countries and average
-//clicks
-
-//Pseudocode and naive implementation:
-/*
-countrytoclickshashtable(ctcht) = {}
-groupId = GET(user)
-bitlinks = GET(groups/{groupId}/bitlinks)
-for each link in bitlinks:
-     clicksbycountry = GET(bitlinks/{link}/countries)
-     ctcht{clicksbycountry[country]} += clicksbycountry[clicks]
-return map(divideclicksby30,ctcht)
-
-*/
-
-// use this for testing
-//token := "5ad8274a49bcd964f23d4b685c272c37de718711"
+// This file consists of the HTTP server and handler implementation and
+// handler.
 
 const HTTP_TIMEOUT = 10 * time.Second
 
-func (c *BitlyClientInfo) checkValidRequest(h http.HandlerFunc) http.HandlerFunc {
+func (c *BitlyClientInfo) checkAuthorizedRequest(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -55,6 +36,7 @@ func (c *BitlyClientInfo) checkValidRequest(h http.HandlerFunc) http.HandlerFunc
 
 	}
 }
+
 func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +63,6 @@ func (c *BitlyClientInfo) handleAvgClicks(api BitlinksMetrics) http.HandlerFunc 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(data)
-
 	}
 }
 
@@ -95,12 +76,12 @@ func (c *BitlyClientInfo) avgClicks(api BitlinksMetrics) ([]CountryClick, error)
 		return nil, err
 	}
 
-	// retrieve all the links and stick into a hashtable
 	grouplinks, err := api.GetBitlinksForGroup(c, userInfo.GroupGuid)
 	if err != nil {
 		return nil, err
 	}
 
+	// for each bitlink add the number of clicks to the running total of clicksByCountry
 	for _, link := range grouplinks.Links {
 		cc, err := api.GetBitlinkClicksByCountry(c, link)
 		if err != nil {
@@ -144,7 +125,7 @@ func main() {
 	clientInfo := BitlyClientInfo{}
 	api := &bitlinksMetricsAPI{}
 	r := mux.NewRouter()
-	r.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkValidRequest(clientInfo.handleAvgClicks(api)))
+	r.HandleFunc("/groups/{groupGuid}/countries/averages", clientInfo.checkAuthorizedRequest(clientInfo.handleAvgClicks(api)))
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
@@ -163,6 +144,8 @@ func main() {
 	awaitShutdown(srv)
 }
 
+// awaitShutdown listens on a channel for the OS shutdown signal, and when
+// received proceeds to call the server's Shutdown method
 func awaitShutdown(srv *http.Server) {
 	interruptChan := make(chan os.Signal, 1)
 	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
